@@ -1,8 +1,10 @@
 import torch
-from torch.utils.data import Dataset
 import h5py
 import numpy as np
 import pandas as pd
+from typing import Iterator
+from torch.utils.data import Dataset
+from torch.utils.data import Sampler
 
 class HDF5Dataset(Dataset):
     def __init__(self, file_path, transform=None, target_transform=None):
@@ -30,3 +32,18 @@ class HDF5Dataset(Dataset):
             
         assert img.shape == (1, tile_size, tile_size), f"Shape is {img.shape} and must be (1, {tile_size}, {tile_size})"
         return img
+
+# NOTE: make sure index is not out of bounds
+class HDF5Sampler(Sampler):
+    def __init__(self, data: HDF5Dataset):
+        self.data = data
+        
+    # NOTE: Overwriting the len method sets the number of example tiles you draw per epoch
+    def __len__(self) -> int:
+        return len(self.data)
+        
+    # NOTE: Overwrite the iter method such that it yields random tuples of 
+    # (brain, image, row, column, tile size) based on your train brains, 
+    # their image shapes and the selected tile size
+    def __iter__(self) -> Iterator[int]:
+        return iter(range(len(self.data)))
