@@ -1,7 +1,7 @@
 h5py
 matplotlib
-numpy == 1.26.4
+numpy==1.26.4
 pandas
-torch == 2.2.2
-torchvision == 0.2.0
+torch==2.2.2
+torchvision==0.2.0
 pillow
