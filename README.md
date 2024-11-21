@@ -1,5 +1,7 @@
 ## Getting started
 
+![image](./images/reconstructed_images.png)
+
 ### Poetry
 
 if poetry not installed download it

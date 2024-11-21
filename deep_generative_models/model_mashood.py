@@ -6,6 +6,7 @@ class VAE(nn.Module):
     def __init__(self, input_dim=128, last_hidden_dim=128):
         super(VAE, self).__init__()
         self.input_dim = input_dim
+        self.name = "VAE_MASHOOD"
 
         self.encoder = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=4, stride=2, padding=1),
