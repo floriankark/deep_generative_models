@@ -13,7 +13,8 @@ class VAETrainer:
         self.input_dim = input_dim
         self.batch_size = batch_size
         self.num_epochs = num_epochs
-        self.model = VariationalAutoEncoder(input_dim, h_dim, z_dim).to(device)
+        #self.model = VariationalAutoEncoder(input_dim, h_dim, z_dim).to(device)
+        self.model = VAE(input_dim, z_dim)
         self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
         self.loss_fn = nn.BCELoss(reduction="sum")
         # self.loss_fn = nn.functional.mse_loss(x_hat, x, reduction='sum')
@@ -23,7 +24,7 @@ class VAETrainer:
         brains = ["B01", "B02", "B05"]  # Training brains
         brains = ["B20"]
         hdf5_file_path = "data/cell_data.h5"
-        tile_size = 64
+        tile_size = 128
         batch_size = 4
         tiles_per_epoch = 100
         dataloader = create_dataloader(
@@ -100,9 +101,9 @@ class VAETrainer:
 
 def main():
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    INPUT_DIM = 4096
+    INPUT_DIM = 128
     H_DIM = 200
-    Z_DIM = 20
+    Z_DIM = 128
     NUM_EPOCHS = 30
     BATCH_SIZE = 32
     LR = 3e-4
