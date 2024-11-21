@@ -8,6 +8,7 @@ from deep_generative_models.dataset import create_dataloader
 class VAEInference:
     def __init__(self, model_path, input_dim, z_dim, device):
         self.device = device
+        self.input_dim = input_dim
         self.model = VAE(input_dim, z_dim).to(device)
         self.model.load_state_dict(torch.load(model_path, map_location=device))
         self.model.eval()
@@ -15,8 +16,8 @@ class VAEInference:
 
     def load_data(self, batch_size):
         brains = ["B20"]  # Validation brains
-        tile_size = 128
-        tiles_per_epoch = 100  # Adjust as needed
+        tile_size = self.input_dim
+        tiles_per_epoch = 10  # Adjust as needed
         dataloader = create_dataloader(
             CELL_DATA, brains, tile_size, batch_size, tiles_per_epoch, num_workers=0
         )
@@ -38,8 +39,10 @@ class VAEInference:
             self.plot_generated_images(samples)
 
     def plot_reconstructed_images(self, original, reconstructed):
-        original = original.view(-1, 128, 128).cpu().numpy()
-        reconstructed = reconstructed.view(-1, 128, 128).cpu().numpy()
+        original = original.view(-1, self.input_dim, self.input_dim).cpu().numpy()
+        reconstructed = (
+            reconstructed.view(-1, self.input_dim, self.input_dim).cpu().numpy()
+        )
         fig, axes = plt.subplots(2, len(original), figsize=(15, 3))
         for i in range(len(original)):
             axes[0, i].imshow(original[i], cmap="gray")
@@ -50,7 +53,7 @@ class VAEInference:
         plt.close()
 
     def plot_generated_images(self, samples):
-        samples = samples.view(-1, 128, 128).cpu().numpy()
+        samples = samples.view(-1, self.input_dim, self.input_dim).cpu().numpy()
         fig, axes = plt.subplots(1, len(samples), figsize=(15, 3))
         for i in range(len(samples)):
             axes[i].imshow(samples[i], cmap="gray")
@@ -61,9 +64,9 @@ class VAEInference:
 
 def main():
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    INPUT_DIM = 128
-    Z_DIM = 128
-    MODEL_PATH = STORAGE / "trained_model_VAE_MASHOOD_20241121_163604.pth"
+    INPUT_DIM = 256  # Put into config
+    Z_DIM = 128  # Put into config
+    MODEL_PATH = STORAGE / "trained_model_VAE_MASHOOD_20241121_165507.pth"
 
     inference = VAEInference(MODEL_PATH, INPUT_DIM, Z_DIM, DEVICE)
     inference.inference()

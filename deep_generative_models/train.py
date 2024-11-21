@@ -11,7 +11,7 @@ from deep_generative_models.model_mashood import VAE
 
 class VAETrainer:
     def __init__(self, model, input_dim, batch_size, lr, num_epochs, device):
-        self.device = device´
+        self.device = device
         self.input_dim = input_dim
         self.batch_size = batch_size
         self.num_epochs = num_epochs
@@ -28,7 +28,7 @@ class VAETrainer:
         val_brains = ["B07"]
         # brains = ["B20"]  # Test
         hdf5_file_path = CELL_DATA
-        tile_size = 128
+        tile_size = self.input_dim
         batch_size = 4
         train_dataloader = create_dataloader(
             hdf5_file_path,
@@ -110,7 +110,9 @@ class VAETrainer:
         plt.ylabel("Loss")
         plt.legend()
         plt.grid()
-        plt.savefig(IMAGES / f"train_val_loss_plot_{self.model.name}_{self.timestamp}.png")
+        plt.savefig(
+            IMAGES / f"train_val_loss_plot_{self.model.name}_{self.timestamp}.png"
+        )
         plt.show()
 
     def save_model(self, path):
@@ -128,18 +130,19 @@ class VAETrainer:
             print(
                 f"Epoch [{epoch+1}/{self.num_epochs}], Train Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}"
             )
-        self.save_model(STORAGE / f"trained_model_{self.model.name}_{self.timestamp}.pth")
+        self.save_model(
+            STORAGE / f"trained_model_{self.model.name}_{self.timestamp}.pth"
+        )
         self.plot_losses(train_losses, val_losses)
 
 
 def main():
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    INPUT_DIM = 128
-    Z_DIM = 128
-    # H_DIM = 200 deprecated
-    NUM_EPOCHS = 10
-    BATCH_SIZE = 16
-    LR = 3e-4
+    INPUT_DIM = 256  # Put into config
+    Z_DIM = 128  # Put into config
+    NUM_EPOCHS = 15  # Put into config
+    BATCH_SIZE = 16  # Put into config
+    LR = 3e-4  # Put into config
 
     MODEL = VAE(INPUT_DIM, Z_DIM)
 

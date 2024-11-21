@@ -2,3 +2,7 @@ data
 .venv
 __pycache__.venv
 __pycache__
+
+storage/
+
+*.pth
