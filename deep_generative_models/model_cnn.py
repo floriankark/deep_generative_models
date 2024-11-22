@@ -3,7 +3,7 @@ import torch
 from torch import nn
 
 # Load the TOML config
-with open("config.toml", "rb") as f:  # Open the TOML file in binary mode
+with open("/Users/floriankark/Desktop/deep_generative_models/deep_generative_models/config.toml", "rb") as f:
     config = tomli.load(f)
 
 class Block(nn.Module):
@@ -79,8 +79,13 @@ class Decoder(nn.Module):
         return x
    
 class VAE(nn.Module):
-    def __init__(self, encoder_channels: list[int], decoder_channels: list[int], latent_dim: int, device: torch.device):
+    def __init__(self, input_dim: int, latent_dim: int, # dont need to specify input_dim, already in config TODO: change that so that config value is passed at init here
+                 encoder_channels: list[int]=config["enc"]["channels"], 
+                 decoder_channels: list[int]=config["dec"]["channels"],
+                 device: torch.device="cpu"
+                 ) -> None:
         super().__init__()
+        self.name = "VAE_FLO"
         self.encoder = Encoder(encoder_channels, latent_dim).to(device)
         self.decoder = Decoder(decoder_channels, latent_dim).to(device)
         self.head = nn.Conv2d(in_channels=decoder_channels[-1], out_channels=1, **config["head"]).to(device)
@@ -101,10 +106,10 @@ class VAE(nn.Module):
     def forward(self, x):
         mu, logvar = self.encoder(x)
         z = self.reparametrize(mu, logvar)
-        x_hat = self.decoder(z)
-        return self.tanh(self.head(x_hat)) # Normalize the output to [-1, 1] for the MSE loss
+        x_hat = self.tanh(self.head(self.decoder(z))) # Normalize the output to [-1, 1] for the MSE loss
+        return x_hat, mu, logvar
 
-if __name__ == "__main__":
+"""if __name__ == "__main__":
     batch_size = 1
     image_size = 28
     input_channels = 1
@@ -118,4 +123,4 @@ if __name__ == "__main__":
               )
     x_reconstructed = vae(x)
     print(x_reconstructed.shape)
-    print(vae.loss(x, x_reconstructed, vae.encoder(x)[0], vae.encoder(x)[1]))
+    print(vae.loss(x, x_reconstructed, vae.encoder(x)[0], vae.encoder(x)[1]))"""

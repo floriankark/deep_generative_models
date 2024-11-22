@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 from deep_generative_models.dataset import create_dataloader
 from deep_generative_models.model import VariationalAutoEncoder
 from config.paths import CELL_DATA, IMAGES, STORAGE
-from deep_generative_models.model_mashood import VAE
+#from deep_generative_models.model_mashood import VAE
+from deep_generative_models.model_cnn import VAE
 
 
 class VAETrainer:
