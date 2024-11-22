@@ -1,0 +1,25 @@
+fc_input = 7
+fc_output = 20
+latent_dim = 20
+bias = false
+
+[block]
+kernel_size = 3
+#stride = 1
+padding = "same"
+dilation = 1
+#bias = false
+
+[enc]
+channels = [1, 2, 4]
+
+[dec]
+channels = [4, 2, 1]
+
+[up_conv]
+kernel_size = 2
+stride = 2
+
+[head]
+kernel_size = 3
+padding = "same"
