@@ -39,7 +39,7 @@ class Encoder(nn.Module):
             [Block(channels[i], channels[i + 1]) for i in range(len(channels) - 1)]
         )
         self.pool = nn.MaxPool2d(**config["pool"])
-        
+
         self.fc = nn.Linear(
             in_features=config["fc_input"] * config["fc_input"] * channels[-1],
             out_features=config["fc_output"],
@@ -59,6 +59,9 @@ class Encoder(nn.Module):
         x = self.fc(x)
         x_mu = self.fc_mu(x)
         x_logvar = self.fc_logvar(x)
+        x_logvar = torch.clamp(
+            x_logvar, min=-30, max=20
+        )  # Stabalize logvar prevent exploding gradient https://github.com/huggingface/diffusers/blob/main/src/diffusers/models/autoencoders/vae.py
         return x_mu, x_logvar
 
 
@@ -132,20 +135,21 @@ class VAE(nn.Module):
         )  # Normalize the output to [-1, 1] for the MSE loss
         return x_hat, mu, logvar
 
+
 if __name__ == "__main__":
     """batch_size = 1
     image_size = 28
     input_channels = 1
-    x = torch.randn(batch_size, input_channels, image_size, image_size) 
+    x = torch.randn(batch_size, input_channels, image_size, image_size)
     print(x.shape)
     device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    vae = VAE(encoder_channels=config["enc"]["channels"], 
-              decoder_channels=config["dec"]["channels"], 
-              latent_dim=config["latent_dim"], 
+    vae = VAE(encoder_channels=config["enc"]["channels"],
+              decoder_channels=config["dec"]["channels"],
+              latent_dim=config["latent_dim"],
               device=device
               )
     x_reconstructed = vae(x)
     print(x_reconstructed.shape)
     print(vae.loss(x, x_reconstructed, vae.encoder(x)[0], vae.encoder(x)[1]))"""
-    #model = VAE(input_dim=256, latent_dim=128)
-    #summary(model, input_size=(4, 1, 256, 256), device="cpu")
+    # model = VAE(input_dim=256, latent_dim=128)
+    # summary(model, input_size=(4, 1, 256, 256), device="cpu")

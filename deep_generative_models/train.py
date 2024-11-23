@@ -7,12 +7,13 @@ import matplotlib.pyplot as plt
 from deep_generative_models.dataset import create_dataloader
 from deep_generative_models.model import VariationalAutoEncoder
 from config.paths import CELL_DATA, IMAGES, STORAGE, TRAIN_CONFIG
-#from deep_generative_models.model_mashood import VAE
+
+# from deep_generative_models.model_mashood import VAE
 from deep_generative_models.model_cnn import VAE
 
 with open(TRAIN_CONFIG, "rb") as f:
     config = tomli.load(f)
-         
+
 
 class VAETrainer:
     def __init__(self, model, input_dim, batch_size, lr, num_epochs, device):
@@ -126,7 +127,9 @@ class VAETrainer:
         val_losses = []
         for epoch in range(self.num_epochs):
             train_loss = self.train_epoch()
+            print(train_loss)
             val_loss = self.validate_epoch()
+            print(val_loss)
             train_losses.append(train_loss)
             val_losses.append(val_loss)
             print(
