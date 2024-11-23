@@ -1,14 +1,18 @@
 import datetime
 import torch
+import tomli
 from tqdm import tqdm
 from torch import nn, optim
 import matplotlib.pyplot as plt
 from deep_generative_models.dataset import create_dataloader
 from deep_generative_models.model import VariationalAutoEncoder
-from config.paths import CELL_DATA, IMAGES, STORAGE
+from config.paths import CELL_DATA, IMAGES, STORAGE, TRAIN_CONFIG
 #from deep_generative_models.model_mashood import VAE
 from deep_generative_models.model_cnn import VAE
 
+with open(TRAIN_CONFIG, "rb") as f:
+    config = tomli.load(f)
+         
 
 class VAETrainer:
     def __init__(self, model, input_dim, batch_size, lr, num_epochs, device):
@@ -16,11 +20,8 @@ class VAETrainer:
         self.input_dim = input_dim
         self.batch_size = batch_size
         self.num_epochs = num_epochs
-        # self.model = VariationalAutoEncoder(input_dim, h_dim, z_dim).to(device)
         self.model = model
-        self.optimizer = optim.Adam(self.model.parameters(), lr=lr)
-        self.loss_fn = nn.BCELoss(reduction="sum")
-        # self.loss_fn = nn.functional.mse_loss(x_hat, x, reduction='sum')
+        self.optimizer = optim.Adam(self.model.parameters(), **config["optimizer"])
         self.train_loader, self.val_loader = self.load_data()
         self.timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -145,7 +146,7 @@ def main():
     BATCH_SIZE = 16  # Put into config
     LR = 3e-4  # Put into config
 
-    MODEL = VAE(INPUT_DIM, Z_DIM)
+    MODEL = VAE(**config["model"], device=DEVICE)
 
     trainer = VAETrainer(MODEL, INPUT_DIM, BATCH_SIZE, LR, NUM_EPOCHS, DEVICE)
     trainer.train()

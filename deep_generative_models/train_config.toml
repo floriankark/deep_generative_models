@@ -1,0 +1,8 @@
+[model]
+input_dim = 256
+latent_dim = 128S
+
+
+[optimizer]
+lr = 0.001
+weight_decay = 1e-7
