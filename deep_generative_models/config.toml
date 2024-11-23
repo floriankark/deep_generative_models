@@ -4,23 +4,26 @@ latent_dim = 128
 bias = false
 
 [block]
-kernel_size = 4
-stride = 2
-padding = 1
-#dilation = 1
+kernel_size = 3
+#stride = 1
+padding = "same"
+dilation = 1
 #bias = false
 
 [enc]
-channels = [32, 64, 128]
+channels = [1, 32, 64, 128, 256]
 
 [dec]
-channels = [128, 64, 32]
+channels = [256, 128, 64, 32, 1]
 
 [up_conv]
-kernel_size = 4
+kernel_size = 2
 stride = 2
-padding = 1
+#padding = 1
 
 [head]
 kernel_size = 3
 padding = "same"
+
+[pool]
+kernel_size = 2

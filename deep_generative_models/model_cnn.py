@@ -1,6 +1,7 @@
 import tomli
 import torch
 from torch import nn
+from torchinfo import summary
 
 # Load the TOML config
 with open("/Users/floriankark/Desktop/deep_generative_models/deep_generative_models/config.toml", "rb") as f:
@@ -33,7 +34,7 @@ class Encoder(nn.Module):
         self.encoder_blocks = nn.ModuleList(
             [Block(channels[i], channels[i + 1]) for i in range(len(channels) - 1)]
         )
-        self.pool = nn.MaxPool2d(2)
+        self.pool = nn.MaxPool2d(**config["pool"])
         
         self.fc = nn.Linear(
             in_features=config["fc_input"] * config["fc_input"] * channels[-1],
@@ -109,8 +110,8 @@ class VAE(nn.Module):
         x_hat = self.tanh(self.head(self.decoder(z))) # Normalize the output to [-1, 1] for the MSE loss
         return x_hat, mu, logvar
 
-"""if __name__ == "__main__":
-    batch_size = 1
+if __name__ == "__main__":
+    """batch_size = 1
     image_size = 28
     input_channels = 1
     x = torch.randn(batch_size, input_channels, image_size, image_size) 
@@ -124,3 +125,5 @@ class VAE(nn.Module):
     x_reconstructed = vae(x)
     print(x_reconstructed.shape)
     print(vae.loss(x, x_reconstructed, vae.encoder(x)[0], vae.encoder(x)[1]))"""
+    #model = VAE(input_dim=256, latent_dim=128)
+    #summary(model, input_size=(4, 1, 256, 256), device="cpu")
