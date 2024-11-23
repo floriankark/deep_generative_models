@@ -11,10 +11,10 @@ padding = 1
 #bias = false
 
 [enc]
-channels = [32, 64, 128]
+channels = [1, 32, 64, 128]
 
 [dec]
-channels = [128, 64, 32]
+channels = [128, 64, 32, 1]
 
 [up_conv]
 kernel_size = 4
