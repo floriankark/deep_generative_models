@@ -64,11 +64,18 @@ class VAETrainer:
                 loop.set_postfix(loss=loss.item())
         return val_loss / len(self.val_loader)
 
-    def compute_loss(self, x, x_reconstructed, mu, sigma):
+    """def compute_loss(self, x, x_reconstructed, mu, sigma):
         reconstruction_loss = nn.functional.mse_loss(
             x_reconstructed, x, reduction="sum"
         )
         kl_div = -torch.sum(1 + torch.log(sigma.pow(2)) - mu.pow(2) - sigma.pow(2))
+        return reconstruction_loss + kl_div"""
+        
+    def compute_loss(self, x, x_reconstructed, mu, logvar):
+        reconstruction_loss = nn.functional.mse_loss(
+            x_reconstructed, x, reduction="sum"
+        )
+        kl_div = -0.5 * torch.sum(logvar - mu.pow(2) - logvar.exp() + 1)
         return reconstruction_loss + kl_div
 
     def plot_losses(self, train_losses, val_losses):
@@ -104,9 +111,7 @@ class VAETrainer:
         val_losses = []
         for epoch in range(self.num_epochs):
             train_loss = self.train_epoch()
-            print(train_loss)
             val_loss = self.validate_epoch()
-            print(val_loss)
             train_losses.append(train_loss)
             val_losses.append(val_loss)
             print(

@@ -18,7 +18,7 @@ class Block(nn.Module):
             out_channels=channel_out,
             **config["block"],
         )
-        self.bn = nn.BatchNorm2d(channel_out)
+        self.bn = nn.BatchNorm2d(channel_out, momentum=0.9)
         self.relu = nn.ReLU()
         self.conv2 = nn.Conv2d(
             in_channels=channel_out,
@@ -39,11 +39,11 @@ class Encoder(nn.Module):
         )
         self.pool = nn.MaxPool2d(**config["pool"])
 
-        self.fc = nn.Linear(
-            in_features=config["fc_input"] * config["fc_input"] * channels[-1],
-            out_features=config["fc_output"],
-            bias=config["bias"],
-        )
+        self.fc = nn.Sequential(nn.Linear(in_features=config["fc_input"] * config["fc_input"] * channels[-1],
+                                          out_features=config["fc_output"],
+                                          bias=config["bias"]), 
+                                nn.BatchNorm1d(config["fc_output"], momentum=0.9),
+                                nn.ReLU())
 
         self.fc_mu = nn.Linear(in_features=config["fc_output"], out_features=latent_dim)
         self.fc_logvar = nn.Linear(
@@ -68,11 +68,12 @@ class Decoder(nn.Module):
     def __init__(self, channels: list[int], latent_dim: int):
         super().__init__()
         self.channels = channels
-        self.fc = nn.Linear(
-            in_features=latent_dim,
-            out_features=config["fc_input"] * config["fc_input"] * channels[0],
-            bias=config["bias"],
-        )
+        self.fc = nn.Sequential(nn.Linear(in_features=latent_dim, 
+                                          out_features=config["fc_input"] * config["fc_input"] * channels[0],
+                                          bias=config["bias"]),
+                                nn.BatchNorm1d(config["fc_input"] * config["fc_input"] * channels[0], momentum=0.9),
+                                nn.ReLU()
+                                )
         self.up_conv = nn.ModuleList(
             [
                 nn.ConvTranspose2d(channels[i], channels[i], **config["up_conv"])
@@ -82,7 +83,7 @@ class Decoder(nn.Module):
         self.decoder_blocks = nn.ModuleList(
             [Block(channels[i], channels[i + 1]) for i in range(len(channels) - 1)]
         )
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU()
 
     def forward(self, x):
         x = self.relu(self.fc(x)).reshape(
@@ -148,5 +149,5 @@ if __name__ == "__main__":
     x_reconstructed = vae(x)
     print(x_reconstructed.shape)
     print(vae.loss(x, x_reconstructed, vae.encoder(x)[0], vae.encoder(x)[1]))"""
-    # model = VAE(input_dim=256, latent_dim=128)
-    # summary(model, input_size=(4, 1, 256, 256), device="cpu")
+    model = VAE(input_dim=256, latent_dim=128)
+    summary(model, input_size=(4, 1, 256, 256), device="cpu")
