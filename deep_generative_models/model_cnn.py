@@ -149,5 +149,5 @@ if __name__ == "__main__":
     x_reconstructed = vae(x)
     print(x_reconstructed.shape)
     print(vae.loss(x, x_reconstructed, vae.encoder(x)[0], vae.encoder(x)[1]))"""
-    model = VAE(input_dim=256, latent_dim=128)
-    summary(model, input_size=(4, 1, 256, 256), device="cpu")
+    model = VAE(input_dim=256, latent_dim=256)
+    summary(model, input_size=(32, 1, 256, 256), device="cpu")

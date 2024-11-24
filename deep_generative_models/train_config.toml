@@ -1,21 +1,21 @@
 [model]
-input_dim = 64
-latent_dim = 128
+input_dim = 256
+latent_dim = 256
 
 [optimizer]
-lr = 3e-4
-weight_decay = 0.01
+lr = 0.001
+weight_decay = 1e-7
 
 [train_loader]
 brains = ["B01", "B02", "B05"]
-tile_size = 64
+tile_size = 256
 batch_size = 32
 tiles_per_epoch = 2000
 num_workers = 0
 
 [val_loader]
 brains = ["B07"]
-tile_size = 64
+tile_size = 256
 batch_size = 32
 tiles_per_epoch = 100
 num_workers = 0

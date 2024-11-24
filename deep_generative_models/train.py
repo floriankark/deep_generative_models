@@ -20,7 +20,7 @@ class VAETrainer:
         self.device = device
         self.num_epochs = num_epochs
         self.model = model
-        self.optimizer = optim.Adam(self.model.parameters(), **config["optimizer"])
+        self.optimizer = optim.AdamW(self.model.parameters(), **config["optimizer"])
         self.train_loader, self.val_loader = self.load_data()
         self.timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 

@@ -1,29 +1,30 @@
-fc_input = 16
-fc_output = 128
-latent_dim = 128
-bias = false
+fc_input = 8
+fc_output = 512
+latent_dim = 256
+bias = true
 
 [block]
 kernel_size = 3
-#stride = 1
-padding = "same"
-dilation = 1
-#bias = false
+stride = 1
+padding = 1
+bias = false
 
 [enc]
-channels = [1, 32, 64]
+channels = [1, 32, 64, 128, 256, 1024]
 
 [dec]
-channels = [64, 32, 1]
+channels = [1024, 256, 128, 64, 32, 1]
 
 [up_conv]
 kernel_size = 2
 stride = 2
-#padding = 1
 
 [head]
 kernel_size = 3
-padding = "same"
+stride = 1
+padding = 1
+bias = true
 
 [pool]
 kernel_size = 2
+stride = 2
