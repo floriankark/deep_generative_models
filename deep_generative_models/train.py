@@ -1,4 +1,5 @@
 import datetime
+import json
 import torch
 import tomli
 from tqdm import tqdm
@@ -39,6 +40,7 @@ class VAETrainer:
             desc="Training",
         )
         for i, x in loop:
+            x = x.to(self.device)
             x_reconstructed, mu, sigma = self.model(x)
             loss = self.compute_loss(x, x_reconstructed, mu, sigma)
             self.optimizer.zero_grad()
@@ -58,6 +60,7 @@ class VAETrainer:
                 desc="Validation",
             )
             for i, x in loop:
+                x = x.to(self.device)
                 x_reconstructed, mu, sigma = self.model(x)
                 loss = self.compute_loss(x, x_reconstructed, mu, sigma)
                 val_loss += loss.item()
@@ -70,7 +73,7 @@ class VAETrainer:
         )
         kl_div = -torch.sum(1 + torch.log(sigma.pow(2)) - mu.pow(2) - sigma.pow(2))
         return reconstruction_loss + kl_div"""
-        
+
     def compute_loss(self, x, x_reconstructed, mu, logvar):
         reconstruction_loss = nn.functional.mse_loss(
             x_reconstructed, x, reduction="sum"
@@ -120,11 +123,23 @@ class VAETrainer:
         self.save_model(
             STORAGE / f"trained_model_{self.model.name}_{self.timestamp}.pth"
         )
+
+        config_dir = STORAGE / "config"
+        config_dir.mkdir(parents=True, exist_ok=True)
+        with open(config_dir / f"{self.model.name}_{self.timestamp}.json", "w") as f:
+            json.dump(config["model"], f)
+
         self.plot_losses(train_losses, val_losses)
 
 
 def main():
-    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    DEVICE = torch.device(
+        "cuda"
+        if torch.cuda.is_available()
+        else "mps:0" if torch.backends.mps.is_available() else "cpu"
+    )
+
+    print(DEVICE)
     MODEL = VAE(**config["model"], device=DEVICE)
 
     trainer = VAETrainer(MODEL, DEVICE, **config["trainer"])

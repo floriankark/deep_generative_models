@@ -1,6 +1,6 @@
 fc_input = 8
 fc_output = 512
-latent_dim = 256
+latent_dim = 128
 bias = true
 
 [block]
