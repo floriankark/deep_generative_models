@@ -5,7 +5,6 @@ from torchinfo import summary
 
 from config.paths import CNN_MODEL_CONFIG
 
-# Load the TOML config
 with open(CNN_MODEL_CONFIG, "rb") as f:
     config = tomli.load(f)
 
@@ -99,9 +98,7 @@ class VAE(nn.Module):
     def __init__(
         self,
         input_dim: int,
-        latent_dim: int = config[
-            "latent_dim"
-        ],  # dont need to specify input_dim, already in config TODO: change that so that config value is passed at init here
+        latent_dim: int,
         encoder_channels: list[int] = config["enc"]["channels"],
         decoder_channels: list[int] = config["dec"]["channels"],
         device: torch.device = "cpu",

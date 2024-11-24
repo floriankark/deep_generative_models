@@ -16,10 +16,8 @@ with open(TRAIN_CONFIG, "rb") as f:
 
 
 class VAETrainer:
-    def __init__(self, model, input_dim, batch_size, lr, num_epochs, device):
+    def __init__(self, model, device, num_epochs):
         self.device = device
-        self.input_dim = input_dim
-        self.batch_size = batch_size
         self.num_epochs = num_epochs
         self.model = model
         self.optimizer = optim.Adam(self.model.parameters(), **config["optimizer"])
@@ -27,30 +25,10 @@ class VAETrainer:
         self.timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def load_data(self):
-        train_brains = ["B01", "B02", "B05"]  # Training brains
-        val_brains = ["B07"]
-        # brains = ["B20"]  # Test
         hdf5_file_path = CELL_DATA
-        tile_size = self.input_dim
-        batch_size = 4
-        train_dataloader = create_dataloader(
-            hdf5_file_path,
-            train_brains,
-            tile_size,
-            batch_size,
-            num_workers=0,
-        )
-
-        val_dataloader = create_dataloader(
-            hdf5_file_path,
-            val_brains,
-            tile_size,
-            batch_size,
-            tiles_per_epoch=100,
-            num_workers=0,
-        )
-
-        return train_dataloader, val_dataloader
+        train_loader = create_dataloader(hdf5_file_path, **config["train_loader"])
+        val_loader = create_dataloader(hdf5_file_path, **config["val_loader"])
+        return train_loader, val_loader
 
     def train_epoch(self):
         self.model.train()
@@ -61,7 +39,6 @@ class VAETrainer:
             desc="Training",
         )
         for i, x in loop:
-            # deprecated FFN: x = x.to(self.device).view(x.shape[0], self.input_dim)
             x_reconstructed, mu, sigma = self.model(x)
             loss = self.compute_loss(x, x_reconstructed, mu, sigma)
             self.optimizer.zero_grad()
@@ -143,15 +120,9 @@ class VAETrainer:
 
 def main():
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    INPUT_DIM = 256  # Put into config
-    Z_DIM = 128  # Put into config
-    NUM_EPOCHS = 15  # Put into config
-    BATCH_SIZE = 16  # Put into config
-    LR = 3e-4  # Put into config
-
     MODEL = VAE(**config["model"], device=DEVICE)
 
-    trainer = VAETrainer(MODEL, INPUT_DIM, BATCH_SIZE, LR, NUM_EPOCHS, DEVICE)
+    trainer = VAETrainer(MODEL, DEVICE, **config["trainer"])
     trainer.train()
 
 
