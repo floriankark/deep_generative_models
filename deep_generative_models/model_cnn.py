@@ -13,32 +13,36 @@ class EncoderBlock(nn.Module):
     def __init__(self, channel_in: int, channel_out: int) -> None:
         super().__init__()
 
-        self.conv = nn.Conv2d(
-            in_channels=channel_in,
-            out_channels=channel_out,
-            **config["block"],
+        self.conv = nn.Sequential(
+            nn.Conv2d(
+                in_channels=channel_in,
+                out_channels=channel_out,
+                **config["block"],
+            ),
+            # nn.BatchNorm2d(channel_out),
+            nn.LeakyReLU(**config["leaky_relu"]),
         )
-        #self.bn = nn.BatchNorm2d(channel_out)
-        self.relu = nn.LeakyReLU(**config["leaky_relu"])
 
     def forward(self, x):
-        return self.relu(self.conv(x))
+        return self.conv(x)
 
 
 class DecoderBlock(nn.Module):
     def __init__(self, channel_in: int, channel_out: int) -> None:
         super().__init__()
 
-        self.conv = nn.ConvTranspose2d(
-            in_channels=channel_in,
-            out_channels=channel_out,
-            **config["block"],
+        self.conv = nn.Sequential(
+            nn.ConvTranspose2d(
+                in_channels=channel_in,
+                out_channels=channel_out,
+                **config["block"],
+            ),
+            # nn.BatchNorm2d(channel_out),
+            nn.LeakyReLU(**config["leaky_relu"]),
         )
-        #self.bn = nn.BatchNorm2d(channel_out)
-        self.relu = nn.LeakyReLU(**config["leaky_relu"])
 
     def forward(self, x):
-        return self.relu(self.conv(x))
+        return self.conv(x)
 
 
 class Encoder(nn.Module):

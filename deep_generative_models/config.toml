@@ -1,4 +1,4 @@
-fc_input = 32
+fc_input = 16
 latent_dim = 128
 bias = true
 
@@ -12,10 +12,10 @@ bias = true
 negative_slope = 0.2
 
 [enc]
-channels = [1, 32, 64, 128]
+channels = [1, 32, 64, 128, 256]
 
 [dec]
-channels = [128, 64, 32, 1]
+channels = [256,128, 64, 32, 1]
 
 [head]
 kernel_size = 3

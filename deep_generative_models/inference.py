@@ -56,17 +56,21 @@ class VAEInference:
             axes[1, i].imshow(reconstructed[i], cmap="gray")
             axes[1, i].axis("off")
         plt.savefig(
-            IMAGES / f"reconstructed_images_{self.model.name}_{self.timestamp}.png"
+            IMAGES / f"reconstructed_images_{self.model.name}_{self.timestamp}.png",
+            dpi=300,
         )
         plt.close()
 
     def plot_generated_images(self, samples):
         samples = samples.view(-1, self.input_dim, self.input_dim).cpu().numpy()
-        fig, axes = plt.subplots(1, len(samples), figsize=(15, 3))
+
+        fig, axes = plt.subplots(1, len(samples), figsize=(len(samples) * 3, 3))
         for i in range(len(samples)):
             axes[i].imshow(samples[i], cmap="gray")
             axes[i].axis("off")
-        plt.savefig(IMAGES / f"generated_images_{self.model.name}_{self.timestamp}.png")
+        plt.savefig(
+            IMAGES / f"generated_images_{self.model.name}_{self.timestamp}.png", dpi=300
+        )
         plt.close()
 
 
@@ -82,7 +86,7 @@ def main():
     print(DEVICE)
     INPUT_DIM = config["model"]["input_dim"]  # Put into config
     Z_DIM = config["model"]["latent_dim"]  # Put into config
-    MODEL_PATH = STORAGE / "trained_model_VAE_FLO_20241126_144935.pth"
+    MODEL_PATH = STORAGE / "trained_model_VAE_FLO_20241126_154011.pth"
 
     inference = VAEInference(MODEL_PATH, INPUT_DIM, Z_DIM, DEVICE)
     inference.inference()

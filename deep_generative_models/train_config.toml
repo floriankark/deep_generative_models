@@ -11,7 +11,7 @@ lr = 3e-4
 brains = ["B01", "B02", "B05"]
 tile_size = 256
 batch_size = 16
-tiles_per_epoch = 1000
+tiles_per_epoch = 5000
 num_workers = 0
 
 [val_loader]
@@ -22,4 +22,4 @@ tiles_per_epoch = 100
 num_workers = 0
 
 [trainer]
-num_epochs = 2
+num_epochs = 15
