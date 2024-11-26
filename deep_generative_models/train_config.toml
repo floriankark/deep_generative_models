@@ -10,7 +10,7 @@ weight_decay = 1e-5
 [train_loader]
 brains = ["B01", "B02", "B05"]
 tile_size = 256
-batch_size = 16
+batch_size = 64
 tiles_per_epoch = 1000
 num_workers = 0
 

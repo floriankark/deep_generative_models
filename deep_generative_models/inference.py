@@ -78,7 +78,7 @@ def main():
     print(DEVICE)
     INPUT_DIM = config["model"]["input_dim"]  # Put into config
     Z_DIM = config["model"]["latent_dim"]  # Put into config
-    MODEL_PATH = STORAGE / "trained_model_VAE_FLO_20241126_141657.pth"
+    MODEL_PATH = STORAGE / "trained_model_VAE_FLO_20241126_143813.pth"
 
     inference = VAEInference(MODEL_PATH, INPUT_DIM, Z_DIM, DEVICE)
     inference.inference()
