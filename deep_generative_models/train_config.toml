@@ -11,7 +11,7 @@ weight_decay = 1e-5
 brains = ["B01", "B02", "B05"]
 tile_size = 256
 batch_size = 16
-tiles_per_epoch = 2000
+tiles_per_epoch = 1000
 num_workers = 0
 
 [val_loader]

@@ -33,7 +33,7 @@ class VAETrainer:
 
     def train_epoch(self):
         self.model.train()
-        train_loss = 0
+        train_losses = []
         loop = tqdm(
             enumerate(self.train_loader),
             total=len(self.train_loader),
@@ -46,13 +46,13 @@ class VAETrainer:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-            train_loss += loss.item()
+            train_losses.append(loss.item())
             loop.set_postfix(loss=loss.item())
-        return train_loss / len(self.train_loader)
+        return train_losses
 
     def validate_epoch(self):
         self.model.eval()
-        val_loss = 0
+        val_losses = []
         with torch.no_grad():
             loop = tqdm(
                 enumerate(self.val_loader),
@@ -63,54 +63,9 @@ class VAETrainer:
                 x = x.to(self.device)
                 x_reconstructed, mu, sigma = self.model(x)
                 loss = self.compute_loss(x, x_reconstructed, mu, sigma)
-                val_loss += loss.item()
+                val_losses.append(loss.item())
                 loop.set_postfix(loss=loss.item())
-        return val_loss / len(self.val_loader)
-
-    """def compute_loss(self, x, x_reconstructed, mu, sigma):
-        reconstruction_loss = nn.functional.mse_loss(
-            x_reconstructed, x, reduction="sum"
-        )
-        kl_div = -torch.sum(1 + torch.log(sigma.pow(2)) - mu.pow(2) - sigma.pow(2))
-        return reconstruction_loss + kl_div"""
-
-    def compute_loss(self, x, x_reconstructed, mu, logvar):
-        # https://arxiv.org/pdf/1810.00597
-        var = torch.clamp(logvar.exp(), min=1e-5)
-        reconstruction_loss = nn.functional.mse_loss(
-            x_reconstructed, x, reduction="mean"
-        )
-        # https://arxiv.org/abs/1312.6114
-        kl_div = -0.5 * torch.sum(logvar - mu.pow(2) - var + 1)
-        return reconstruction_loss + kl_div
-
-    def plot_losses(self, train_losses, val_losses):
-        plt.figure(figsize=(10, 5))
-        plt.plot(
-            range(1, self.num_epochs + 1),
-            train_losses,
-            label="Training Loss",
-            marker="o",
-        )
-        plt.plot(
-            range(1, self.num_epochs + 1),
-            val_losses,
-            label="Validation Loss",
-            marker="o",
-        )
-        plt.title("Training and Validation Loss per Epoch")
-        plt.xlabel("Epoch")
-        plt.ylabel("Loss")
-        plt.legend()
-        plt.grid()
-        plt.savefig(
-            IMAGES / f"train_val_loss_plot_{self.model.name}_{self.timestamp}.png"
-        )
-        plt.show()
-
-    def save_model(self, path):
-        print("saving model")
-        torch.save(self.model.state_dict(), path)
+        return val_losses
 
     def train(self):
         train_losses = []
@@ -118,10 +73,10 @@ class VAETrainer:
         for epoch in range(self.num_epochs):
             train_loss = self.train_epoch()
             val_loss = self.validate_epoch()
-            train_losses.append(train_loss)
-            val_losses.append(val_loss)
+            train_losses.extend(train_loss)
+            val_losses.extend(val_loss)
             print(
-                f"Epoch [{epoch+1}/{self.num_epochs}], Train Loss: {train_loss:.4f}, Validation Loss: {val_loss:.4f}"
+                f"Epoch [{epoch+1}/{self.num_epochs}], Train Loss: {sum(train_loss)/len(train_loss):.4f}, Validation Loss: {sum(val_loss)/len(val_loss):.4f}"
             )
         self.save_model(
             STORAGE / f"trained_model_{self.model.name}_{self.timestamp}.pth"
@@ -133,6 +88,44 @@ class VAETrainer:
             json.dump(config["model"], f)
 
         self.plot_losses(train_losses, val_losses)
+
+    def plot_losses(self, train_losses, val_losses):
+        plt.figure(figsize=(10, 5))
+        plt.plot(
+            range(1, len(train_losses) + 1),
+            train_losses,
+            label="Training Loss",
+            marker="o",
+        )
+        plt.plot(
+            range(1, len(val_losses) + 1),
+            val_losses,
+            label="Validation Loss",
+            marker="o",
+        )
+        plt.title("Training and Validation Loss per Batch")
+        plt.xlabel("Batch")
+        plt.ylabel("Loss")
+        plt.legend()
+        plt.grid()
+        plt.savefig(
+            IMAGES / f"train_val_loss_plot_{self.model.name}_{self.timestamp}.png"
+        )
+        plt.show()
+
+    def compute_loss(self, x, x_reconstructed, mu, logvar):
+        # https://arxiv.org/pdf/1810.00597
+        var = torch.clamp(logvar.exp(), min=1e-5)
+        reconstruction_loss = nn.functional.mse_loss(
+            x_reconstructed, x, reduction="mean"
+        )
+        # https://arxiv.org/abs/1312.6114
+        kl_div = -0.5 * torch.sum(logvar - mu.pow(2) - var + 1)
+        return reconstruction_loss + kl_div
+
+    def save_model(self, path):
+        print("saving model")
+        torch.save(self.model.state_dict(), path)
 
 
 def main():
