@@ -67,14 +67,14 @@ class VAETrainer:
                 loop.set_postfix(loss=loss.item())
         return val_loss / len(self.val_loader)
 
-    """def compute_loss(self, x, x_reconstructed, mu, sigma):
+    def compute_loss(self, x, x_reconstructed, mu, sigma):
         reconstruction_loss = nn.functional.mse_loss(
             x_reconstructed, x, reduction="sum"
         )
         kl_div = -torch.sum(1 + torch.log(sigma.pow(2)) - mu.pow(2) - sigma.pow(2))
-        return reconstruction_loss + kl_div"""
+        return reconstruction_loss + kl_div
 
-    def compute_loss(self, x, x_reconstructed, mu, logvar):
+    """def compute_loss(self, x, x_reconstructed, mu, logvar):
         # https://arxiv.org/pdf/1810.00597
         var = torch.clamp(logvar.exp(), min=1e-5)
         reconstruction_loss = nn.functional.mse_loss(
@@ -82,7 +82,7 @@ class VAETrainer:
         )
         # https://arxiv.org/abs/1312.6114
         kl_div = -0.5 * torch.sum(logvar - mu.pow(2) - var + 1)
-        return reconstruction_loss + kl_div
+        return reconstruction_loss + kl_div"""
 
     def plot_losses(self, train_losses, val_losses):
         plt.figure(figsize=(10, 5))
@@ -144,7 +144,7 @@ def main():
 
     print(DEVICE)
     MODEL = VAE(**config["model"], device=DEVICE)
-    MODEL.init_params(0.0, 0.02)
+    #MODEL.init_params(0.0, 0.02)
 
     trainer = VAETrainer(MODEL, DEVICE, **config["trainer"])
     trainer.train()

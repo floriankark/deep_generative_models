@@ -18,11 +18,11 @@ class EncoderBlock(nn.Module):
             out_channels=channel_out,
             **config["block"],
         )
-        self.bn = nn.BatchNorm2d(channel_out)
-        self.relu = nn.ReLU()
+        #self.bn = nn.BatchNorm2d(channel_out)
+        self.relu = nn.LeakyReLU(**config["leaky_relu"])
 
     def forward(self, x):
-        return self.relu(self.bn(self.conv(x)))
+        return self.relu(self.conv(x))
 
 
 class DecoderBlock(nn.Module):
@@ -34,11 +34,11 @@ class DecoderBlock(nn.Module):
             out_channels=channel_out,
             **config["block"],
         )
-        self.bn = nn.BatchNorm2d(channel_out)
+        #self.bn = nn.BatchNorm2d(channel_out)
         self.relu = nn.LeakyReLU(**config["leaky_relu"])
 
     def forward(self, x):
-        return self.relu(self.bn(self.conv(x)))
+        return self.relu(self.conv(x))
 
 
 class Encoder(nn.Module):
@@ -56,7 +56,7 @@ class Encoder(nn.Module):
             in_features=config["fc_input"] * config["fc_input"] * channels[-1],
             out_features=latent_dim,
         )
-        self.fc_logvar = nn.Linear(
+        self.fc_var = nn.Linear(
             in_features=config["fc_input"] * config["fc_input"] * channels[-1],
             out_features=latent_dim,
         )
@@ -65,8 +65,8 @@ class Encoder(nn.Module):
         x = self.conv(x)
         x = x.view(-1, config["fc_input"] * config["fc_input"] * self.channels[-1])
         x_mu = self.fc_mu(x)
-        x_logvar = self.fc_logvar(x)
-        return x_mu, x_logvar
+        x_var = torch.clamp(self.fc_var(x), min=1e-6)
+        return x_mu, x_var
 
 
 class Decoder(nn.Module):
@@ -101,7 +101,6 @@ class Decoder(nn.Module):
             -1, self.channels[0], config["fc_input"], config["fc_input"]
         )
         x = self.conv(x)
-        # x = self.head(x)
         return x
 
 
@@ -120,10 +119,10 @@ class VAE(nn.Module):
         self.decoder = Decoder(decoder_channels, latent_dim).to(device)
         self.device = device
 
-    def reparametrize(self, mu, logvar):
-        logvar = logvar.mul(0.5).exp_()
-        eps = torch.randn_like(mu).to(self.device)
-        return mu + logvar * eps
+    def reparametrize(self, mu, var):
+        self.norm = torch.distributions.Normal(0, 1)
+        eps = self.norm.sample(var.shape)
+        return mu + var * eps
 
     def loss(self, x, x_hat, mu, logvar):
         var = torch.clip(
