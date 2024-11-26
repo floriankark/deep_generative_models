@@ -1,16 +1,19 @@
+import tomli
 import torch
 import matplotlib.pyplot as plt
-#from deep_generative_models.model_mashood import VAE
 from deep_generative_models.model_cnn import VAE
-from config.paths import IMAGES, STORAGE, CELL_DATA
+from config.paths import IMAGES, STORAGE, CELL_DATA, TRAIN_CONFIG
 from deep_generative_models.dataset import create_dataloader
+
+with open(TRAIN_CONFIG, "rb") as f:
+    config = tomli.load(f)
 
 
 class VAEInference:
     def __init__(self, model_path, input_dim, z_dim, device):
         self.device = device
         self.input_dim = input_dim
-        self.model = VAE(input_dim, z_dim).to(device)
+        self.model = VAE(input_dim=input_dim, latent_dim=z_dim).to(device)
         self.model.load_state_dict(torch.load(model_path, map_location=device))
         self.model.eval()
         self.z_dim = z_dim
@@ -64,10 +67,18 @@ class VAEInference:
 
 
 def main():
-    DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    INPUT_DIM = 128  # Put into config
-    Z_DIM = 512  # Put into config
-    MODEL_PATH = STORAGE / "trained_model_VAE_FLO_20241125_172946.pth"
+    DEVICE = torch.device(
+        "cuda:0"
+        if torch.cuda.is_available()
+        else (
+            "cpu" if torch.backends.mps.is_available() else "cpu"
+        )  # @TODO fix keep cpu for now needs file changes
+    )
+
+    print(DEVICE)
+    INPUT_DIM = config["model"]["input_dim"]  # Put into config
+    Z_DIM = config["model"]["latent_dim"]  # Put into config
+    MODEL_PATH = STORAGE / "trained_model_VAE_FLO_20241124_193243.pth"
 
     inference = VAEInference(MODEL_PATH, INPUT_DIM, Z_DIM, DEVICE)
     inference.inference()
