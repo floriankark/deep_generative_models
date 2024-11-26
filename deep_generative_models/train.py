@@ -20,7 +20,7 @@ class VAETrainer:
         self.device = device
         self.num_epochs = num_epochs
         self.model = model
-        self.optimizer = optim.AdamW(self.model.parameters(), **config["optimizer"])
+        self.optimizer = optim.Adam(self.model.parameters(), **config["optimizer"])
         self.train_loader, self.val_loader = self.load_data()
         self.timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -72,10 +72,13 @@ class VAETrainer:
         return reconstruction_loss + kl_div"""
         
     def compute_loss(self, x, x_reconstructed, mu, logvar):
+        # https://arxiv.org/pdf/1810.00597
+        var = torch.clamp(logvar.exp(), min=1e-5)
         reconstruction_loss = nn.functional.mse_loss(
-            x_reconstructed, x, reduction="sum"
+            x_reconstructed, x, reduction="mean"
         )
-        kl_div = -0.5 * torch.sum(logvar - mu.pow(2) - logvar.exp() + 1)
+        # https://arxiv.org/abs/1312.6114
+        kl_div = -0.5 * torch.sum(logvar - mu.pow(2) - var + 1)
         return reconstruction_loss + kl_div
 
     def plot_losses(self, train_losses, val_losses):
@@ -126,6 +129,7 @@ class VAETrainer:
 def main():
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     MODEL = VAE(**config["model"], device=DEVICE)
+    MODEL.init_params(0.0, 0.02)
 
     trainer = VAETrainer(MODEL, DEVICE, **config["trainer"])
     trainer.train()

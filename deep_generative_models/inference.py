@@ -1,6 +1,7 @@
 import torch
 import matplotlib.pyplot as plt
-from deep_generative_models.model_mashood import VAE
+#from deep_generative_models.model_mashood import VAE
+from deep_generative_models.model_cnn import VAE
 from config.paths import IMAGES, STORAGE, CELL_DATA
 from deep_generative_models.dataset import create_dataloader
 
@@ -35,7 +36,7 @@ class VAEInference:
     def sample(self, num_samples=10):
         with torch.no_grad():
             z = torch.randn(num_samples, self.z_dim).to(self.device)
-            samples = self.model.decode(z)
+            samples = self.model.decoder(z)
             self.plot_generated_images(samples)
 
     def plot_reconstructed_images(self, original, reconstructed):
@@ -64,9 +65,9 @@ class VAEInference:
 
 def main():
     DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    INPUT_DIM = 256  # Put into config
-    Z_DIM = 128  # Put into config
-    MODEL_PATH = STORAGE / "trained_model_VAE_MASHOOD_20241121_165507.pth"
+    INPUT_DIM = 128  # Put into config
+    Z_DIM = 512  # Put into config
+    MODEL_PATH = STORAGE / "trained_model_VAE_FLO_20241125_172946.pth"
 
     inference = VAEInference(MODEL_PATH, INPUT_DIM, Z_DIM, DEVICE)
     inference.inference()
