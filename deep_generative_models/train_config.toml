@@ -22,4 +22,4 @@ tiles_per_epoch = 100
 num_workers = 0
 
 [trainer]
-num_epochs = 15
+num_epochs = 2

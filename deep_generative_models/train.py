@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from deep_generative_models.dataset import create_dataloader
 from deep_generative_models.model import VariationalAutoEncoder
 from config.paths import CELL_DATA, IMAGES, STORAGE, TRAIN_CONFIG
+import numpy as np
 
 # from deep_generative_models.model_mashood import VAE
 from deep_generative_models.model_cnn import VAE
@@ -89,19 +90,23 @@ class VAETrainer:
 
         self.plot_losses(train_losses, val_losses)
 
+    def interp1d(self, array: np.ndarray, new_len: int) -> np.ndarray:
+        la = len(array)
+        return np.interp(np.linspace(0, la - 1, num=new_len), np.arange(la), array)
+
     def plot_losses(self, train_losses, val_losses):
+        # Interpolate validation losses to match the length of training losses
+        val_losses_stretched = self.interp1d(val_losses, len(train_losses))
         plt.figure(figsize=(10, 5))
         plt.plot(
             range(1, len(train_losses) + 1),
             train_losses,
             label="Training Loss",
-            marker="o",
         )
         plt.plot(
-            range(1, len(val_losses) + 1),
-            val_losses,
+            range(1, len(val_losses_stretched) + 1),
+            val_losses_stretched,
             label="Validation Loss",
-            marker="o",
         )
         plt.title("Training and Validation Loss per Batch")
         plt.xlabel("Batch")
@@ -134,7 +139,7 @@ def main():
 
     print(DEVICE)
     MODEL = VAE(**config["model"], device=DEVICE)
-    #MODEL.init_params(0.0, 0.02)
+    # MODEL.init_params(0.0, 0.02)
 
     trainer = VAETrainer(MODEL, DEVICE, **config["trainer"])
     trainer.train()

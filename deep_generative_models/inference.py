@@ -1,3 +1,4 @@
+import datetime
 import tomli
 import torch
 import matplotlib.pyplot as plt
@@ -17,6 +18,7 @@ class VAEInference:
         self.model.load_state_dict(torch.load(model_path, map_location=device))
         self.model.eval()
         self.z_dim = z_dim
+        self.timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def load_data(self, batch_size):
         brains = ["B20"]  # Validation brains
@@ -53,7 +55,9 @@ class VAEInference:
             axes[0, i].axis("off")
             axes[1, i].imshow(reconstructed[i], cmap="gray")
             axes[1, i].axis("off")
-        plt.savefig(IMAGES / "reconstructed_images.png")
+        plt.savefig(
+            IMAGES / f"reconstructed_images_{self.model.name}_{self.timestamp}.png"
+        )
         plt.close()
 
     def plot_generated_images(self, samples):
@@ -62,7 +66,7 @@ class VAEInference:
         for i in range(len(samples)):
             axes[i].imshow(samples[i], cmap="gray")
             axes[i].axis("off")
-        plt.savefig(IMAGES / "generated_images.png")
+        plt.savefig(IMAGES / f"generated_images_{self.model.name}_{self.timestamp}.png")
         plt.close()
 
 
