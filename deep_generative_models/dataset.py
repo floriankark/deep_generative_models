@@ -39,7 +39,7 @@ class HDF5Dataset(Dataset):
         tile = torch.tensor(tile[None, :, :], dtype=torch.float32)
 
         # normalize
-        tile = (tile - self.glob_mean) / self.glob_std
+        #tile = (tile - self.glob_mean) / self.glob_std
 
         # TODO: You might want to experiment with several
         # data augmentations in your training Dataset
@@ -64,6 +64,18 @@ class HDF5Sampler(Sampler):
     # NOTE: Overwriting the len method sets the number of example tiles you draw per epoch
     def __len__(self) -> int:
         return self.tiles_per_epoch
+    
+    def _is_outlier(self, image, lower_threshold, upper_threshold, percentage=0.1):
+        below_lower = image < lower_threshold
+        above_upper = image > upper_threshold
+        
+        below_lower_count = below_lower.sum()
+        above_upper_count = above_upper.sum()
+        
+        below_condition = below_lower_count > percentage * image.size
+        above_condition = above_upper_count > percentage * image.size
+        
+        return below_condition | above_condition
 
     # NOTE: Overwrite the iter method such that it yields random tuples of
     # (brain, image, row, column, tile size) based on your train brains,
@@ -86,11 +98,14 @@ class HDF5Sampler(Sampler):
             row_range = row_len - self.tile_size
             column_range = column_len - self.tile_size
 
-            # get random row and column
-            row = random.randint(0, row_range)
-            column = random.randint(0, column_range)
-
-            tiles.append((brain, image, row, column, self.tile_size))
+            # while the tile is an outlier, sample a new tile
+            while True:
+                row = random.randint(0, row_range)
+                column = random.randint(0, column_range)
+                tile = self._hf[brain][image][row : row + self.tile_size, column : column + self.tile_size]
+                if not self._is_outlier(tile, 20, 230):
+                    tiles.append((brain, image, row, column, self.tile_size))
+                    break
 
         return iter(tiles)
 
