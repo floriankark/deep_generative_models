@@ -23,7 +23,8 @@ class EncoderBlock(nn.Module):
 
     def forward(self, x):
         return self.relu(self.bn(self.conv(x)))
-    
+
+
 class DecoderBlock(nn.Module):
     def __init__(self, channel_in: int, channel_out: int) -> None:
         super().__init__()
@@ -45,13 +46,20 @@ class Encoder(nn.Module):
         super().__init__()
         self.channels = channels
         self.conv = nn.Sequential(
-            *[EncoderBlock(channels[i], channels[i + 1]) for i in range(len(channels) - 1)]
+            *[
+                EncoderBlock(channels[i], channels[i + 1])
+                for i in range(len(channels) - 1)
+            ]
         )
 
-        self.fc_mu = nn.Linear(in_features=config["fc_input"] * config["fc_input"] * channels[-1], 
-                               out_features=latent_dim)
-        self.fc_logvar = nn.Linear(in_features=config["fc_input"] * config["fc_input"] * channels[-1],
-                                   out_features=latent_dim)
+        self.fc_mu = nn.Linear(
+            in_features=config["fc_input"] * config["fc_input"] * channels[-1],
+            out_features=latent_dim,
+        )
+        self.fc_logvar = nn.Linear(
+            in_features=config["fc_input"] * config["fc_input"] * channels[-1],
+            out_features=latent_dim,
+        )
 
     def forward(self, x):
         x = self.conv(x)
@@ -64,26 +72,36 @@ class Encoder(nn.Module):
 class Decoder(nn.Module):
     def __init__(self, channels: list[int], latent_dim: int):
         super().__init__()
-        self.channels = channels # TODO: just reverse the encoder channels
-        self.fc = nn.Linear(in_features=latent_dim, 
-                            out_features=config["fc_input"] * config["fc_input"] * channels[0], 
-                            bias=config["bias"])
+        self.channels = channels  # TODO: just reverse the encoder channels
+        self.fc = nn.Linear(
+            in_features=latent_dim,
+            out_features=config["fc_input"] * config["fc_input"] * channels[0],
+            bias=config["bias"],
+        )
         self.conv = nn.Sequential(
-            *[DecoderBlock(channels[i], channels[i + 1]) for i in range(len(channels) - 1)] 
+            *[
+                DecoderBlock(channels[i], channels[i + 1])
+                for i in range(len(channels) - 1)
+            ]
         )
         self.head = nn.Sequential(
-            nn.ConvTranspose2d(in_channels=channels[-1], out_channels=channels[-1], **config["head"]),
+            nn.ConvTranspose2d(
+                in_channels=channels[-1], out_channels=channels[-1], **config["head"]
+            ),
             nn.BatchNorm2d(channels[-1]),
             nn.LeakyReLU(**config["leaky_relu"]),
-            nn.Conv2d(in_channels=channels[-1], out_channels=1, kernel_size=3, padding=1),
-            nn.Tanh()) # Normalize the output to [-1, 1] for the MSE loss
+            nn.Conv2d(
+                in_channels=channels[-1], out_channels=1, kernel_size=3, padding=1
+            ),
+            nn.Tanh(),
+        )  # Normalize the output to [-1, 1] for the MSE loss
 
     def forward(self, x):
         x = self.fc(x).reshape(
             -1, self.channels[0], config["fc_input"], config["fc_input"]
         )
         x = self.conv(x)
-        x = self.head(x)
+        # x = self.head(x)
         return x
 
 
@@ -108,11 +126,13 @@ class VAE(nn.Module):
         return mu + logvar * eps
 
     def loss(self, x, x_hat, mu, logvar):
-        var = torch.clip(logvar.exp(), min=1e-5) # Clip the variance to avoid numerical instability
+        var = torch.clip(
+            logvar.exp(), min=1e-5
+        )  # Clip the variance to avoid numerical instability
         recon_loss = nn.functional.mse_loss(x_hat, x, reduction="sum")
         kldivergence = -0.5 * torch.sum(logvar - mu.pow(2) - var + 1)
         return recon_loss + kldivergence
-    
+
     def init_params(self, mean=0.0, std=0.02):
         # standard is uniform initialization
         # see https://github.com/pytorch/pytorch/blob/07906f2f2b6848e3fe1c1c45e98f0f7acb54116b/torch/nn/modules/linear.py#L114
@@ -130,5 +150,5 @@ class VAE(nn.Module):
 
 if __name__ == "__main__":
     # Check the model architecture
-    model = VAE(input_dim=128, latent_dim=512)
-    summary(model, input_size=(128, 1, 128, 128), device="cpu")
+    model = VAE(input_dim=256, latent_dim=128)
+    summary(model, input_size=(128, 1, 256, 256), device="cpu")

@@ -1,5 +1,5 @@
-fc_input = 2
-latent_dim = 512
+fc_input = 32
+latent_dim = 128
 bias = true
 
 [block]
@@ -12,10 +12,10 @@ bias = true
 negative_slope = 0.2
 
 [enc]
-channels = [1, 32, 64, 128, 256, 512]
+channels = [1, 32, 64, 128]
 
 [dec]
-channels = [512, 256, 128, 64, 32, 1]
+channels = [128, 64, 32, 1]
 
 [head]
 kernel_size = 3
