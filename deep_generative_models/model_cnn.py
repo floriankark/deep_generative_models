@@ -121,7 +121,7 @@ class VAE(nn.Module):
 
     def reparametrize(self, mu, var):
         self.norm = torch.distributions.Normal(0, 1)
-        eps = self.norm.sample(var.shape)
+        eps = self.norm.sample(var.shape).to(self.device)
         return mu + var * eps
 
     def loss(self, x, x_hat, mu, logvar):
