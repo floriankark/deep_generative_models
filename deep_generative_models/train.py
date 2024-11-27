@@ -43,7 +43,7 @@ class VAETrainer:
         for i, x in loop:
             x = x.to(self.device)
             x_reconstructed, mu, sigma = self.model(x)
-            loss = self.compute_loss(x, x_reconstructed, mu, sigma)
+            loss = self.compute_loss(x, x_reconstructed, mu, sigma, **config["loss"])
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
@@ -63,7 +63,7 @@ class VAETrainer:
             for i, x in loop:
                 x = x.to(self.device)
                 x_reconstructed, mu, sigma = self.model(x)
-                loss = self.compute_loss(x, x_reconstructed, mu, sigma)
+                loss = self.compute_loss(x, x_reconstructed, mu, sigma, **config["loss"])
                 val_losses.append(loss.item())
                 loop.set_postfix(loss=loss.item())
         return val_losses
@@ -118,12 +118,27 @@ class VAETrainer:
         )
         plt.show()
 
-    def compute_loss(self, x, x_reconstructed, mu, sigma):
+    def compute_loss(self, x, x_reconstructed, mu, logvar, beta: float) -> torch.Tensor:
         reconstruction_loss = nn.functional.mse_loss(
             x_reconstructed, x, reduction="mean"
         )
-        kl_div = -torch.sum(1 + torch.log(sigma.pow(2)) - mu.pow(2) - sigma.pow(2))
-        return reconstruction_loss + config["loss"]["beta"] * kl_div
+        kl_div = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
+        return reconstruction_loss + beta * kl_div
+    
+    def logcosh_loss(self, x, x_reconstructed, mu, log_var, alpha: float, beta: float) -> torch.Tensor:
+        # ß_norm =  ßM/N from the paper where M is the number of samples in minibatch and N is the total number of samples in the data
+        kld_weight = config["train_loader"]["batch_size"] / config["train_loader"]["tiles_per_epoch"]
+        beta_norm = beta * kld_weight
+        
+        t = x_reconstructed - x
+        recons_loss = alpha * t + \
+                      torch.log(1. + torch.exp(- 2 * alpha * t)) - \
+                      torch.log(torch.tensor(2.0))
+        recons_loss = (1. / alpha) * recons_loss.mean()
+
+        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+
+        return recons_loss + beta_norm * kld_loss
 
     def save_model(self, path):
         print("saving model")

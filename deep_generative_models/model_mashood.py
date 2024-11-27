@@ -1,5 +1,6 @@
 import torch.nn as nn
 import torch
+from torchinfo import summary
 
 
 class VAE(nn.Module):
@@ -56,3 +57,8 @@ class VAE(nn.Module):
         z = self.reparameterization(mean, var)
         x_hat = self.decode(z)
         return x_hat, mean, var
+
+if __name__ == "__main__":
+    # Check the model architecture
+    model = VAE(input_dim=128, last_hidden_dim=128)
+    summary(model, input_size=(16, 1, 128, 128), device="cpu")

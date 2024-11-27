@@ -4,6 +4,7 @@ import random
 import numpy as np
 import pandas as pd
 from typing import Iterator
+from torchvision.transforms import Normalize
 from torch.utils.data import Dataset, Sampler, DataLoader
 from config.paths import GLOBAL_STATS
 
@@ -39,7 +40,7 @@ class HDF5Dataset(Dataset):
         tile = torch.tensor(tile[None, :, :], dtype=torch.float32)
 
         # normalize
-        # tile = (tile - self.glob_mean) / self.glob_std
+        tile = Normalize(mean=[self.glob_mean], std=[self.glob_std])(tile)
 
         # TODO: You might want to experiment with several
         # data augmentations in your training Dataset

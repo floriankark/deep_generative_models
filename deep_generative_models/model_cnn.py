@@ -19,7 +19,7 @@ class EncoderBlock(nn.Module):
                 out_channels=channel_out,
                 **config["block"],
             ),
-            # nn.BatchNorm2d(channel_out),
+            nn.BatchNorm2d(channel_out),
             nn.LeakyReLU(**config["leaky_relu"]),
         )
 
@@ -37,7 +37,7 @@ class DecoderBlock(nn.Module):
                 out_channels=channel_out,
                 **config["block"],
             ),
-            # nn.BatchNorm2d(channel_out),
+            nn.BatchNorm2d(channel_out),
             nn.LeakyReLU(**config["leaky_relu"]),
         )
 
@@ -49,6 +49,7 @@ class Encoder(nn.Module):
     def __init__(self, channels: list[int], latent_dim: int):
         super().__init__()
         self.channels = channels
+        
         self.conv = nn.Sequential(
             *[
                 EncoderBlock(channels[i], channels[i + 1])
@@ -60,7 +61,7 @@ class Encoder(nn.Module):
             in_features=config["fc_input"] * config["fc_input"] * channels[-1],
             out_features=latent_dim,
         )
-        self.fc_var = nn.Linear(
+        self.fc_logvar = nn.Linear(
             in_features=config["fc_input"] * config["fc_input"] * channels[-1],
             out_features=latent_dim,
         )
@@ -69,8 +70,8 @@ class Encoder(nn.Module):
         x = self.conv(x)
         x = x.view(-1, config["fc_input"] * config["fc_input"] * self.channels[-1])
         x_mu = self.fc_mu(x)
-        x_var = torch.clamp(self.fc_var(x), min=1e-6)
-        return x_mu, x_var
+        x_logvar = torch.clamp(self.fc_logvar(x), min=1.e-5, max=1.e5)
+        return x_mu, x_logvar
 
 
 class Decoder(nn.Module):
@@ -88,17 +89,6 @@ class Decoder(nn.Module):
                 for i in range(len(channels) - 1)
             ]
         )
-        self.head = nn.Sequential(
-            nn.ConvTranspose2d(
-                in_channels=channels[-1], out_channels=channels[-1], **config["head"]
-            ),
-            nn.BatchNorm2d(channels[-1]),
-            nn.LeakyReLU(**config["leaky_relu"]),
-            nn.Conv2d(
-                in_channels=channels[-1], out_channels=1, kernel_size=3, padding=1
-            ),
-            nn.Tanh(),
-        )  # Normalize the output to [-1, 1] for the MSE loss
 
     def forward(self, x):
         x = self.fc(x).reshape(
@@ -123,19 +113,11 @@ class VAE(nn.Module):
         self.decoder = Decoder(decoder_channels, latent_dim).to(device)
         self.device = device
 
-    def reparametrize(self, mu, var):
-        self.norm = torch.distributions.Normal(0, 1)
-        eps = self.norm.sample(var.shape).to(self.device)
-        return mu + var * eps
-
-    def loss(self, x, x_hat, mu, logvar):
-        var = torch.clip(
-            logvar.exp(), min=1e-5
-        )  # Clip the variance to avoid numerical instability
-        recon_loss = nn.functional.mse_loss(x_hat, x, reduction="sum")
-        kldivergence = -0.5 * torch.sum(logvar - mu.pow(2) - var + 1)
-        return recon_loss + kldivergence
-
+    def reparametrize(self, mu, logvar):
+        std = torch.exp(0.5 * logvar)
+        eps = torch.randn_like(std)
+        return mu + eps * std
+    
     def init_params(self, mean=0.0, std=0.02):
         # standard is uniform initialization
         # see https://github.com/pytorch/pytorch/blob/07906f2f2b6848e3fe1c1c45e98f0f7acb54116b/torch/nn/modules/linear.py#L114
@@ -153,5 +135,5 @@ class VAE(nn.Module):
 
 if __name__ == "__main__":
     # Check the model architecture
-    model = VAE(input_dim=256, latent_dim=256)
+    model = VAE(input_dim=256, latent_dim=512)
     summary(model, input_size=(128, 1, 256, 256), device="cpu")
