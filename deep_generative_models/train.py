@@ -8,10 +8,14 @@ import matplotlib.pyplot as plt
 from deep_generative_models.dataset import create_dataloader
 from deep_generative_models.model import VariationalAutoEncoder
 from config.paths import CELL_DATA, IMAGES, STORAGE, TRAIN_CONFIG
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 import numpy as np
 
-# from deep_generative_models.model_mashood import VAE
-from deep_generative_models.model_cnn import VAE
+# from deep_generative_models.model_mashood_enhanced import VAE
+
+from deep_generative_models.model_mashood import VAE
+
+# from deep_generative_models.model_cnn import VAE
 
 with open(TRAIN_CONFIG, "rb") as f:
     config = tomli.load(f)
@@ -25,6 +29,14 @@ class VAETrainer:
         self.optimizer = optim.Adam(self.model.parameters(), **config["optimizer"])
         self.train_loader, self.val_loader = self.load_data()
         self.timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.scheduler = ReduceLROnPlateau(
+            self.optimizer,
+            mode="min",  # Minimize the monitored metric (e.g., validation loss)
+            factor=0.1,  # Reduce LR by a factor of 0.1
+            patience=1,  # Number of epochs with no improvement to wait
+            verbose=True,  # Print a message when the LR is reduced
+            threshold=0.08,
+        )
 
     def load_data(self):
         hdf5_file_path = CELL_DATA
@@ -63,7 +75,9 @@ class VAETrainer:
             for i, x in loop:
                 x = x.to(self.device)
                 x_reconstructed, mu, sigma = self.model(x)
-                loss = self.compute_loss(x, x_reconstructed, mu, sigma, **config["loss"])
+                loss = self.compute_loss(
+                    x, x_reconstructed, mu, sigma, **config["loss"]
+                )
                 val_losses.append(loss.item())
                 loop.set_postfix(loss=loss.item())
         return val_losses
@@ -79,14 +93,16 @@ class VAETrainer:
             print(
                 f"Epoch [{epoch+1}/{self.num_epochs}], Train Loss: {sum(train_loss)/len(train_loss):.4f}, Validation Loss: {sum(val_loss)/len(val_loss):.4f}"
             )
+            val_loss_avg = sum(val_loss) / len(val_loss)
+            print(f"Epoch {epoch+1}, Validation Loss: {val_loss_avg}")
+            self.scheduler.step(val_loss_avg)
+            print(f"Current Learning Rate: {self.optimizer.param_groups[0]['lr']}")
         self.save_model(
             STORAGE / f"trained_model_{self.model.name}_{self.timestamp}.pth"
         )
 
         config_dir = STORAGE / "config"
         config_dir.mkdir(parents=True, exist_ok=True)
-        with open(config_dir / f"{self.model.name}_{self.timestamp}.json", "w") as f:
-            json.dump(config["model"], f)
 
         self.plot_losses(train_losses, val_losses)
 
@@ -124,19 +140,28 @@ class VAETrainer:
         )
         kl_div = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         return reconstruction_loss + beta * kl_div
-    
-    def logcosh_loss(self, x, x_reconstructed, mu, log_var, alpha: float, beta: float) -> torch.Tensor:
-        # ß_norm =  ßM/N from the paper where M is the number of samples in minibatch and N is the total number of samples in the data
-        kld_weight = config["train_loader"]["batch_size"] / config["train_loader"]["tiles_per_epoch"]
-        beta_norm = beta * kld_weight
-        
-        t = x_reconstructed - x
-        recons_loss = alpha * t + \
-                      torch.log(1. + torch.exp(- 2 * alpha * t)) - \
-                      torch.log(torch.tensor(2.0))
-        recons_loss = (1. / alpha) * recons_loss.mean()
 
-        kld_loss = torch.mean(-0.5 * torch.sum(1 + log_var - mu ** 2 - log_var.exp(), dim = 1), dim = 0)
+    def logcosh_loss(
+        self, x, x_reconstructed, mu, log_var, alpha: float, beta: float
+    ) -> torch.Tensor:
+        # ß_norm =  ßM/N from the paper where M is the number of samples in minibatch and N is the total number of samples in the data
+        kld_weight = (
+            config["train_loader"]["batch_size"]
+            / config["train_loader"]["tiles_per_epoch"]
+        )
+        beta_norm = beta * kld_weight
+
+        t = x_reconstructed - x
+        recons_loss = (
+            alpha * t
+            + torch.log(1.0 + torch.exp(-2 * alpha * t))
+            - torch.log(torch.tensor(2.0))
+        )
+        recons_loss = (1.0 / alpha) * recons_loss.mean()
+
+        kld_loss = torch.mean(
+            -0.5 * torch.sum(1 + log_var - mu**2 - log_var.exp(), dim=1), dim=0
+        )
 
         return recons_loss + beta_norm * kld_loss
 
@@ -153,8 +178,8 @@ def main():
     )
 
     print(DEVICE)
-    MODEL = VAE(**config["model"], device=DEVICE)
-    MODEL.init_params(0.0, 0.02)
+    MODEL = VAE(**config["model_mashood"], device=DEVICE)
+    # MODEL.init_params(0.0, 0.02)
 
     trainer = VAETrainer(MODEL, DEVICE, **config["trainer"])
     trainer.train()

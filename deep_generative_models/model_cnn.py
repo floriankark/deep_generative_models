@@ -49,7 +49,7 @@ class Encoder(nn.Module):
     def __init__(self, channels: list[int], latent_dim: int):
         super().__init__()
         self.channels = channels
-        
+
         self.conv = nn.Sequential(
             *[
                 EncoderBlock(channels[i], channels[i + 1])
@@ -70,8 +70,8 @@ class Encoder(nn.Module):
         x = self.conv(x)
         x = x.view(-1, config["fc_input"] * config["fc_input"] * self.channels[-1])
         x_mu = self.fc_mu(x)
-        x_logvar = torch.clamp(self.fc_logvar(x), min=1.e5)
-        return x_mu, x_logvar
+        var = torch.clamp(self.fc_logvar(x), min=1e-6)
+        return x_mu, var  # maybe logvar was the problem
 
 
 class Decoder(nn.Module):
@@ -89,11 +89,14 @@ class Decoder(nn.Module):
                 for i in range(len(channels) - 2)
             ]
         )
-        self.conv.add_module(name="head", module=nn.ConvTranspose2d(
-            in_channels=channels[-2],
-            out_channels=channels[-1],
-            **config["block"],
-        ))
+        self.conv.add_module(
+            name="head",
+            module=nn.ConvTranspose2d(
+                in_channels=channels[-2],
+                out_channels=channels[-1],
+                **config["block"],
+            ),
+        )
 
     def forward(self, x):
         x = self.fc(x).reshape(
@@ -118,11 +121,12 @@ class VAE(nn.Module):
         self.decoder = Decoder(decoder_channels, latent_dim).to(device)
         self.device = device
 
-    def reparametrize(self, mu, logvar):
-        std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return mu + eps * std
-    
+    def reparametrize(self, mean, var):
+        self.norm = torch.distributions.Normal(0, 1)
+        epsilon = self.norm.sample(var.shape).to(self.device)
+        z = mean + var * epsilon
+        return z
+
     def init_params(self, mean=0.0, std=0.02):
         # standard is uniform initialization
         # see https://github.com/pytorch/pytorch/blob/07906f2f2b6848e3fe1c1c45e98f0f7acb54116b/torch/nn/modules/linear.py#L114

@@ -2,7 +2,9 @@ import datetime
 import tomli
 import torch
 import matplotlib.pyplot as plt
-from deep_generative_models.model_cnn import VAE
+
+# from deep_generative_models.model_cnn import VAE
+from deep_generative_models.model_mashood import VAE
 from config.paths import IMAGES, STORAGE, CELL_DATA, TRAIN_CONFIG
 from deep_generative_models.dataset import create_dataloader
 
@@ -11,10 +13,10 @@ with open(TRAIN_CONFIG, "rb") as f:
 
 
 class VAEInference:
-    def __init__(self, model_path, input_dim, z_dim, device):
+    def __init__(self, model_path, input_dim, z_dim, device, model):
         self.device = device
         self.input_dim = input_dim
-        self.model = VAE(input_dim=input_dim, latent_dim=z_dim).to(device)
+        self.model = model
         self.model.load_state_dict(torch.load(model_path, map_location=device))
         self.model.eval()
         self.z_dim = z_dim
@@ -41,7 +43,7 @@ class VAEInference:
     def sample(self, num_samples=10):
         with torch.no_grad():
             z = torch.randn(num_samples, self.z_dim).to(self.device)
-            samples = self.model.decoder(z)
+            samples = self.model.decode(z)
             self.plot_generated_images(samples)
 
     def plot_reconstructed_images(self, original, reconstructed):
@@ -84,11 +86,12 @@ def main():
     )
 
     print(DEVICE)
-    INPUT_DIM = config["model"]["input_dim"]  # Put into config
-    Z_DIM = config["model"]["latent_dim"]  # Put into config
-    MODEL_PATH = STORAGE / "trained_model_VAE_FLO_20241127_172030.pth"
+    INPUT_DIM = config["model_mashood"]["input_dim"]  # Put into config
+    Z_DIM = config["model_mashood"]["last_hidden_dim"]  # Put into config
+    MODEL_PATH = STORAGE / "trained_model_VAE_MASHOOD_20241127_194150.pth"
+    model = VAE(**config["model_mashood"], device=DEVICE)
 
-    inference = VAEInference(MODEL_PATH, INPUT_DIM, Z_DIM, DEVICE)
+    inference = VAEInference(MODEL_PATH, INPUT_DIM, Z_DIM, DEVICE, model)
     inference.inference()
     inference.sample()
 

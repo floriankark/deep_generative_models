@@ -1,6 +1,13 @@
-[model]
-input_dim = 128
-latent_dim = 128
+# [model]
+# input_dim = 128
+# latent_dim = 256
+
+
+[model_mashood]
+input_dim=128
+last_hidden_dim=128
+encoder_channels=[1, 32, 64, 128]
+decoder_channels=[128, 64, 32, 1]
 
 [loss]
 beta = 1.0
@@ -14,7 +21,7 @@ lr = 3e-4
 brains = ["B01", "B02", "B05"]
 tile_size = 128
 batch_size = 16
-tiles_per_epoch = 1000
+tiles_per_epoch = 10000
 num_workers = 0
 
 [val_loader]
@@ -25,4 +32,4 @@ tiles_per_epoch = 100
 num_workers = 0
 
 [trainer]
-num_epochs = 5
+num_epochs = 20

@@ -1,4 +1,4 @@
-fc_input = 32
+fc_input = 16
 latent_dim = 128
 bias = true
 
@@ -23,3 +23,4 @@ stride = 2
 padding = 1
 output_padding = 1
 bias = true
+
