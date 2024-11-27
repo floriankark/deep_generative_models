@@ -17,6 +17,7 @@ pillow = "^11.0.0"
 tqdm = "^4.67.0"
 tomli = "==2.1.0"
 torchinfo = "==1.8.0"
+scikit-learn = "^1.5.2"
 
 
 [tool.poetry.group.dev.dependencies]
