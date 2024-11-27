@@ -39,7 +39,7 @@ class HDF5Dataset(Dataset):
         tile = torch.tensor(tile[None, :, :], dtype=torch.float32)
 
         # normalize
-        #tile = (tile - self.glob_mean) / self.glob_std
+        # tile = (tile - self.glob_mean) / self.glob_std
 
         # TODO: You might want to experiment with several
         # data augmentations in your training Dataset
@@ -57,6 +57,7 @@ class HDF5Sampler(Sampler):
         self.brains = brains
         self.tile_size = tile_size
         self.tiles_per_epoch = tiles_per_epoch
+        self.max_retries = 20
 
     def _open_hdf5(self):
         self._hf = h5py.File(self.file_path, "r")
@@ -64,48 +65,53 @@ class HDF5Sampler(Sampler):
     # NOTE: Overwriting the len method sets the number of example tiles you draw per epoch
     def __len__(self) -> int:
         return self.tiles_per_epoch
-    
+
     def _is_outlier(self, image, lower_threshold, upper_threshold, percentage=0.1):
         below_lower = image < lower_threshold
         above_upper = image > upper_threshold
-        
+
         below_lower_count = below_lower.sum()
         above_upper_count = above_upper.sum()
-        
+
         below_condition = below_lower_count > percentage * image.size
         above_condition = above_upper_count > percentage * image.size
-        
+
         return below_condition | above_condition
 
     # NOTE: Overwrite the iter method such that it yields random tuples of
     # (brain, image, row, column, tile size) based on your train brains,
     # their image shapes and the selected tile size
     def __iter__(self) -> Iterator[int]:
-        # load the image
         if not hasattr(self, "_hf"):
             self._open_hdf5()
 
         tiles = []
         for _ in range(self.tiles_per_epoch):
-            # NOTE: Do not use np.random for drawing random numbers in your Sampler. There are
-            # known issues with PyTorch workers sharing the same seed. Use the python builtin random
-            # or torch.random instead.
-            brain = random.choice(self.brains)
-            image = random.choice(list(self._hf[brain].keys()))
+            retries = 0
+            while retries < self.max_retries:
+                brain = random.choice(self.brains)
+                image = random.choice(list(self._hf[brain].keys()))
 
-            # get allowed range to be sampled from the image
-            row_len, column_len = self._hf[brain][image].shape
-            row_range = row_len - self.tile_size
-            column_range = column_len - self.tile_size
+                row_len, column_len = self._hf[brain][image].shape
+                row_range = row_len - self.tile_size
+                column_range = column_len - self.tile_size
 
-            # while the tile is an outlier, sample a new tile
-            while True:
                 row = random.randint(0, row_range)
                 column = random.randint(0, column_range)
-                tile = self._hf[brain][image][row : row + self.tile_size, column : column + self.tile_size]
+
+                tile = self._hf[brain][image][
+                    row : row + self.tile_size, column : column + self.tile_size
+                ]
+
                 if not self._is_outlier(tile, 20, 230):
                     tiles.append((brain, image, row, column, self.tile_size))
                     break
+                retries += 1
+
+            if retries == self.max_retries:
+                print(
+                    "Warning: Maximum retries reached for tile sampling. Skipping this tile."
+                )
 
         return iter(tiles)
 

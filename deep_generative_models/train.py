@@ -120,10 +120,10 @@ class VAETrainer:
 
     def compute_loss(self, x, x_reconstructed, mu, sigma):
         reconstruction_loss = nn.functional.mse_loss(
-            x_reconstructed, x, reduction="sum"
+            x_reconstructed, x, reduction="mean"
         )
         kl_div = -torch.sum(1 + torch.log(sigma.pow(2)) - mu.pow(2) - sigma.pow(2))
-        return reconstruction_loss + kl_div
+        return reconstruction_loss + config["loss"]["beta"] * kl_div
 
     def save_model(self, path):
         print("saving model")

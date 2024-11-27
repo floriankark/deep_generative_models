@@ -153,5 +153,5 @@ class VAE(nn.Module):
 
 if __name__ == "__main__":
     # Check the model architecture
-    model = VAE(input_dim=256, latent_dim=128)
+    model = VAE(input_dim=256, latent_dim=256)
     summary(model, input_size=(128, 1, 256, 256), device="cpu")
