@@ -16,10 +16,3 @@ channels = [1, 32, 64, 128, 256]
 
 [dec]
 channels = [256, 128, 64, 32, 1]
-
-[head]
-kernel_size = 3
-stride = 2
-padding = 1
-output_padding = 1
-bias = true

@@ -70,7 +70,7 @@ class Encoder(nn.Module):
         x = self.conv(x)
         x = x.view(-1, config["fc_input"] * config["fc_input"] * self.channels[-1])
         x_mu = self.fc_mu(x)
-        x_logvar = torch.clamp(self.fc_logvar(x), min=1.e-5, max=1.e5)
+        x_logvar = torch.clamp(self.fc_logvar(x), min=1.e5)
         return x_mu, x_logvar
 
 
@@ -86,9 +86,14 @@ class Decoder(nn.Module):
         self.conv = nn.Sequential(
             *[
                 DecoderBlock(channels[i], channels[i + 1])
-                for i in range(len(channels) - 1)
+                for i in range(len(channels) - 2)
             ]
         )
+        self.conv.add_module(name="head", module=nn.ConvTranspose2d(
+            in_channels=channels[-2],
+            out_channels=channels[-1],
+            **config["block"],
+        ))
 
     def forward(self, x):
         x = self.fc(x).reshape(
@@ -135,5 +140,5 @@ class VAE(nn.Module):
 
 if __name__ == "__main__":
     # Check the model architecture
-    model = VAE(input_dim=256, latent_dim=512)
-    summary(model, input_size=(128, 1, 256, 256), device="cpu")
+    model = VAE(input_dim=128, latent_dim=128)
+    summary(model, input_size=(128, 1, 128, 128), device="cpu")

@@ -120,7 +120,7 @@ class VAETrainer:
 
     def compute_loss(self, x, x_reconstructed, mu, logvar, beta: float) -> torch.Tensor:
         reconstruction_loss = nn.functional.mse_loss(
-            x_reconstructed, x, reduction="mean"
+            x_reconstructed, x, reduction="sum"
         )
         kl_div = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
         return reconstruction_loss + beta * kl_div
@@ -154,7 +154,7 @@ def main():
 
     print(DEVICE)
     MODEL = VAE(**config["model"], device=DEVICE)
-    # MODEL.init_params(0.0, 0.02)
+    MODEL.init_params(0.0, 0.02)
 
     trainer = VAETrainer(MODEL, DEVICE, **config["trainer"])
     trainer.train()
