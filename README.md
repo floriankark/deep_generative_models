@@ -1,4 +1,4 @@
-![image](./images/reconstructed_images.png)
+![image](./reconstructed_images_VAE_MASHOOD_20241127_194642.png)
 
 # Variational Autoencoder for Microscopic Image Analysis
 
