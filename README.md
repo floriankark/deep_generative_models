@@ -1,4 +1,4 @@
-![image](./reconstructed_images_VAE_MASHOOD_20241127_194642.png)
+)
 
 # Variational Autoencoder for Microscopic Image Analysis
 
@@ -28,3 +28,11 @@ if poetry not installed download it
 - `poetry install` to install al packages
 - `poetry shell` start virtual environment
 - `poetry add [package]` add new package
+
+## Results
+
+Reconstruction:
+![image](./reconstructed_images_VAE_MASHOOD_20241127_194642.png)
+
+Sampling
+![image](./generated_images_VAE_MASHOOD_20241127_194642.png)
