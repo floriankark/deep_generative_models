@@ -39,11 +39,11 @@ class HDF5Dataset(Dataset):
         # ensure the tile is in the required shape (1, H, W) and type (float32)
         tile = torch.tensor(tile[None, :, :], dtype=torch.float32)
 
-        # normalize
         tile = Normalize(mean=[self.glob_mean], std=[self.glob_std])(tile)
 
         # TODO: You might want to experiment with several
         # data augmentations in your training Dataset
+        # i.e. smooth the image and reduce noise
         if self.transform:
             tile = self.transform(tile)
 
@@ -58,14 +58,46 @@ class HDF5Sampler(Sampler):
         self.brains = brains
         self.tile_size = tile_size
         self.tiles_per_epoch = tiles_per_epoch
+        self.weighted_brains = self._weighted_brains()
+        self.weighted_brain_images = self._weighted_brain_images()
         self.max_retries = 20
 
     def _open_hdf5(self):
         self._hf = h5py.File(self.file_path, "r")
 
-    # NOTE: Overwriting the len method sets the number of example tiles you draw per epoch
     def __len__(self) -> int:
         return self.tiles_per_epoch
+    
+    def _weighted_brains(self) -> list:
+        if not hasattr(self, "_hf"):
+            self._open_hdf5()
+            
+        images = [len(self._hf[brain]) for brain in self.brains]
+        weights = np.array(images) / sum(images)
+        return weights
+        
+    def _weighted_brain_images(self) -> dict:
+        if not hasattr(self, "_hf"):
+            self._open_hdf5()
+            
+        brain_images = {}
+        for brain in self.brains:
+            images = np.array(list(self._hf[brain].keys()))
+            image_sizes = [self._hf[brain][image].size for image in images]
+            image_weights = np.array(image_sizes) / sum(image_sizes)
+            brain_images[brain] = (images, image_weights)
+        return brain_images
+    
+    def sample_with_gaussian(self, row_range, column_range):
+        row_mean, col_mean = row_range / 2, column_range / 2
+        # Set the standard deviation to a reasonable value, i.e. 1/4 of the range (1/2 is nearly uniforma and 1/6 is very narrow)
+        row_std, col_std = row_range / 4, column_range / 4 
+
+        # Sample row and column using Gaussian distribution
+        row = int(max(0, min(row_range - 1, random.gauss(row_mean, row_std))))
+        column = int(max(0, min(column_range - 1, random.gauss(col_mean, col_std))))
+
+        return row, column
 
     def _is_outlier(self, image, lower_threshold, upper_threshold, percentage=0.1):
         below_lower = image < lower_threshold
@@ -79,9 +111,6 @@ class HDF5Sampler(Sampler):
 
         return below_condition | above_condition
 
-    # NOTE: Overwrite the iter method such that it yields random tuples of
-    # (brain, image, row, column, tile size) based on your train brains,
-    # their image shapes and the selected tile size
     def __iter__(self) -> Iterator[int]:
         if not hasattr(self, "_hf"):
             self._open_hdf5()
@@ -90,15 +119,15 @@ class HDF5Sampler(Sampler):
         for _ in range(self.tiles_per_epoch):
             retries = 0
             while retries < self.max_retries:
-                brain = random.choice(self.brains)
-                image = random.choice(list(self._hf[brain].keys()))
+                brain = random.choices(self.brains, weights=self.weighted_brains, k=1)[0]
+                images, weights = self.weighted_brain_images[brain]
+                image = random.choices(images, weights=weights, k=1)[0]
 
                 row_len, column_len = self._hf[brain][image].shape
                 row_range = row_len - self.tile_size
                 column_range = column_len - self.tile_size
 
-                row = random.randint(0, row_range)
-                column = random.randint(0, column_range)
+                row, column = self.sample_with_gaussian(row_range, column_range)
 
                 tile = self._hf[brain][image][
                     row : row + self.tile_size, column : column + self.tile_size
